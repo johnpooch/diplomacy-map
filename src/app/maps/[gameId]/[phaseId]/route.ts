@@ -1,5 +1,3 @@
-import * as dotenv from "dotenv";
-
 import {
   ApiResponse,
   Game,
@@ -13,9 +11,11 @@ import {
 import { createMap } from "@/map";
 import { createScopedLogger } from "@/util/telemetry";
 
-const envConfig = dotenv.config();
+const diplicityApiBaseUrl = process.env.DIPLICITY_API_BASE_URL;
 
-const diplicityApiBaseUrl = envConfig.parsed?.DIPLICITY_API_BASE_URL;
+if (!diplicityApiBaseUrl) {
+  throw new Error("DIPLICITY_API_BASE_URL is required");
+}
 
 const log = createScopedLogger("app/page");
 
