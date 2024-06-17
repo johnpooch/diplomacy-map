@@ -87,7 +87,7 @@ export async function GET(
     );
     log.info("Data fetched successfully");
 
-    log.info("Transforming game response");
+    log.info(`Transforming game response: ${JSON.stringify(gameResponse)}`);
     const transformedGame = gameAdapter(gameResponse.Properties);
     log.info("Game response transformed successfully");
 
