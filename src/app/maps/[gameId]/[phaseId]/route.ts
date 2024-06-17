@@ -29,6 +29,8 @@ export async function GET(
   request: Request,
   { params }: { params: { gameId: string; phaseId: string } }
 ) {
+  log.info(`GET /maps/${params.gameId}/${params.phaseId}`);
+
   const { gameId, phaseId } = params;
 
   const gamePromise = fetch(`${diplicityApiBaseUrl}/Game/${gameId}`, {
@@ -81,22 +83,35 @@ export async function GET(
         ]);
       }
     );
-    const transformedGame = gameAdapter(gameResponse.Properties);
-    const variantName = transformedGame.variant;
+    log.info("Data fetched successfully");
 
+    log.info("Transforming game response");
+    const transformedGame = gameAdapter(gameResponse.Properties);
+    log.info("Game response transformed successfully");
+
+    log.info(`Finding variant with name ${transformedGame.variant}`);
     const variant = variantsResponse.Properties.find(
-      (variant) => variant.Name === variantName
+      (variant) => variant.Name === transformedGame.variant
     );
 
     if (!variant) {
+      log.error(`Variant not found with name ${transformedGame.variant}`);
       return new Response("Variant not found", {
         status: 500,
       });
+    } else {
+      log.info(`Variant found with name ${transformedGame.variant}`);
     }
 
+    log.info(`Transforming variant`);
     const transformedVariant = variantAdapter(variant.Properties);
-    const transformedPhase = phaseAdapter(phaseResponse.Properties);
+    log.info(`Variant transformed successfully`);
 
+    log.info("Transforming phase");
+    const transformedPhase = phaseAdapter(phaseResponse.Properties);
+    log.info("Phase transformed successfully");
+
+    log.info("Creating map SVG");
     const map = createMap(
       mapResponse,
       armyResponse,
@@ -104,6 +119,7 @@ export async function GET(
       transformedVariant,
       transformedPhase
     );
+    log.info("Map SVG created successfully");
 
     return new Response(map, {
       status: 200,
@@ -112,8 +128,8 @@ export async function GET(
       },
     });
   } catch (error) {
-    log.error("Error fetching data");
-    return new Response("Error fetching data", {
+    log.error(`Error fetching data: ${error}`);
+    return new Response(`Error fetching data: ${error}`, {
       status: 500,
     });
   }
