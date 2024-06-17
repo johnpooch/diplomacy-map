@@ -9,10 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@napi-rs/image": "^1.9.2",
     "@xmldom/xmldom": "^0.8.10",
+    "convert-svg-to-png": "^0.6.4",
     "dotenv": "^16.4.5",
     "next": "14.2.3",
+    "node-svg2img": "^1.1.0",
+    "puppeteer": "^22.11.1",
     "react": "^18",
     "react-dom": "^18"
   },

@@ -1,4 +1,4 @@
-import { Transformer } from "@napi-rs/image";
+import puppeteer from "puppeteer";
 
 import {
   ApiResponse,
@@ -125,9 +125,15 @@ export async function GET(
     );
     log.info("Map SVG created successfully");
 
-    log.info("Transforming map SVG to PNG");
-    const transformer = Transformer.fromSvg(mapSvg);
-    const png = await transformer.png();
+    log.info("Use puppeteer to convert SVG to PNG");
+    const browser = await puppeteer.launch({
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+    const page = await browser.newPage();
+    await page.setContent(mapSvg);
+    const png = await page.screenshot({ type: "png" });
+    await browser.close();
+    log.info("SVG converted to PNG successfully");
 
     return new Response(png, {
       status: 200,
