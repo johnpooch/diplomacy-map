@@ -51,81 +51,88 @@ export async function GET(
     `${diplicityApiBaseUrl}/Variant/Classical/Units/Fleet.svg`
   );
 
-  const [
-    gameResponse,
-    phaseResponse,
-    variantsResponse,
-    mapResponse,
-    armyResponse,
-    fleetResponse,
-  ] = await Promise.all([
-    gamePromise,
-    phasePromise,
-    variantPromise,
-    mapPromise,
-    armyPromise,
-    fleetPromise,
-  ]).then(
-    async ([
+  try {
+    const [
       gameResponse,
       phaseResponse,
       variantsResponse,
       mapResponse,
       armyResponse,
       fleetResponse,
-    ]) => {
-      return Promise.all([
-        gameResponse.json() as Promise<ApiResponse<Game>>,
-        phaseResponse.json() as Promise<ApiResponse<Phase>>,
-        variantsResponse.json() as Promise<ListApiResponse<Variant>>,
-        mapResponse.text(),
-        armyResponse.text(),
-        fleetResponse.text(),
-      ]);
+    ] = await Promise.all([
+      gamePromise,
+      phasePromise,
+      variantPromise,
+      mapPromise,
+      armyPromise,
+      fleetPromise,
+    ]).then(
+      async ([
+        gameResponse,
+        phaseResponse,
+        variantsResponse,
+        mapResponse,
+        armyResponse,
+        fleetResponse,
+      ]) => {
+        return Promise.all([
+          gameResponse.json() as Promise<ApiResponse<Game>>,
+          phaseResponse.json() as Promise<ApiResponse<Phase>>,
+          variantsResponse.json() as Promise<ListApiResponse<Variant>>,
+          mapResponse.text(),
+          armyResponse.text(),
+          fleetResponse.text(),
+        ]);
+      }
+    );
+    log.info("Data fetched successfully");
+
+    log.info("Transforming game response");
+    const transformedGame = gameAdapter(gameResponse.Properties);
+    log.info("Game response transformed successfully");
+
+    log.info(`Finding variant with name ${transformedGame.variant}`);
+    const variant = variantsResponse.Properties.find(
+      (variant) => variant.Name === transformedGame.variant
+    );
+
+    if (!variant) {
+      log.error(`Variant not found with name ${transformedGame.variant}`);
+      return new Response("Variant not found", {
+        status: 500,
+      });
+    } else {
+      log.info(`Variant found with name ${transformedGame.variant}`);
     }
-  );
-  log.info("Data fetched successfully");
 
-  log.info("Transforming game response");
-  const transformedGame = gameAdapter(gameResponse.Properties);
-  log.info("Game response transformed successfully");
+    log.info(`Transforming variant`);
+    const transformedVariant = variantAdapter(variant.Properties);
+    log.info(`Variant transformed successfully`);
 
-  log.info(`Finding variant with name ${transformedGame.variant}`);
-  const variant = variantsResponse.Properties.find(
-    (variant) => variant.Name === transformedGame.variant
-  );
+    log.info("Transforming phase");
+    const transformedPhase = phaseAdapter(phaseResponse.Properties);
+    log.info("Phase transformed successfully");
 
-  if (!variant) {
-    log.error(`Variant not found with name ${transformedGame.variant}`);
-    return new Response("Variant not found", {
+    log.info("Creating map SVG");
+    const map = createMap(
+      mapResponse,
+      armyResponse,
+      fleetResponse,
+      transformedVariant,
+      transformedPhase
+    );
+    log.info("Map SVG created successfully");
+
+    return new Response(map, {
+      status: 200,
+      headers: {
+        "Content-Type": "image/svg+xml",
+      },
+    });
+  } catch (error) {
+    log.error(`Error fetching data: ${JSON.stringify(error)}`);
+    return new Response(`Error fetching data: ${JSON.stringify(error)}`, {
       status: 500,
     });
-  } else {
-    log.info(`Variant found with name ${transformedGame.variant}`);
   }
-
-  log.info(`Transforming variant`);
-  const transformedVariant = variantAdapter(variant.Properties);
-  log.info(`Variant transformed successfully`);
-
-  log.info("Transforming phase");
-  const transformedPhase = phaseAdapter(phaseResponse.Properties);
-  log.info("Phase transformed successfully");
-
-  log.info("Creating map SVG");
-  const map = createMap(
-    mapResponse,
-    armyResponse,
-    fleetResponse,
-    transformedVariant,
-    transformedPhase
-  );
-  log.info("Map SVG created successfully");
-
-  return new Response(map, {
-    status: 200,
-    headers: {
-      "Content-Type": "image/svg+xml",
-    },
-  });
 }
