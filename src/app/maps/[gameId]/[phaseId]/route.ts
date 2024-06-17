@@ -29,9 +29,9 @@ export async function GET(
   request: Request,
   { params }: { params: { gameId: string; phaseId: string } }
 ) {
-  log.info(`GET /maps/${params.gameId}/${params.phaseId}`);
-
   const { gameId, phaseId } = params;
+
+  const trimmedPhaseId = phaseId.replace(".svg", "");
 
   log.info(`API base URL: ${diplicityApiBaseUrl}`);
 
@@ -39,7 +39,7 @@ export async function GET(
     headers,
   });
   const phasePromise = fetch(
-    `${diplicityApiBaseUrl}/Game/${gameId}/Phase/${phaseId}`,
+    `${diplicityApiBaseUrl}/Game/${gameId}/Phase/${trimmedPhaseId}`,
     { headers }
   );
   const variantPromise = fetch(`${diplicityApiBaseUrl}/Variants`, { headers });
