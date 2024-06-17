@@ -30,8 +30,6 @@ export async function GET(
   { params }: { params: { gameId: string; phaseId: string } }
 ) {
   const { gameId, phaseId } = params;
-  console.log("gameId", gameId);
-  console.log("phaseId", phaseId);
 
   const gamePromise = fetch(`${diplicityApiBaseUrl}/Game/${gameId}`, {
     headers,
@@ -49,114 +47,74 @@ export async function GET(
     `${diplicityApiBaseUrl}/Variant/Classical/Units/Fleet.svg`
   );
 
-  // request data in series
-  const gameResponse = await gamePromise
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`Failed to fetch game: ${response.status}`);
+  try {
+    const [
+      gameResponse,
+      phaseResponse,
+      variantsResponse,
+      mapResponse,
+      armyResponse,
+      fleetResponse,
+    ] = await Promise.all([
+      gamePromise,
+      phasePromise,
+      variantPromise,
+      mapPromise,
+      armyPromise,
+      fleetPromise,
+    ]).then(
+      async ([
+        gameResponse,
+        phaseResponse,
+        variantsResponse,
+        mapResponse,
+        armyResponse,
+        fleetResponse,
+      ]) => {
+        return Promise.all([
+          gameResponse.json() as Promise<ApiResponse<Game>>,
+          phaseResponse.json() as Promise<ApiResponse<Phase>>,
+          variantsResponse.json() as Promise<ListApiResponse<Variant>>,
+          mapResponse.text(),
+          armyResponse.text(),
+          fleetResponse.text(),
+        ]);
       }
-      return response.json();
-    })
-    .then((data) => {
-      return data as ApiResponse<Game>;
-    })
-    .catch((error) => {
-      log.error(`Failed to fetch game: ${error}`);
-      throw error;
+    );
+    const transformedGame = gameAdapter(gameResponse.Properties);
+    const variantName = transformedGame.variant;
+
+    const variant = variantsResponse.Properties.find(
+      (variant) => variant.Name === variantName
+    );
+
+    if (!variant) {
+      return new Response("Variant not found", {
+        status: 500,
+      });
+    }
+
+    const transformedVariant = variantAdapter(variant.Properties);
+    const transformedPhase = phaseAdapter(phaseResponse.Properties);
+
+    const map = createMap(
+      mapResponse,
+      armyResponse,
+      fleetResponse,
+      transformedVariant,
+      transformedPhase
+    );
+
+    return new Response(map, {
+      status: 200,
+      headers: {
+        "Content-Type": "image/svg+xml",
+      },
     });
-
-  const phaseResponse = await phasePromise
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`Failed to fetch phase: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then((data) => {
-      return data as ApiResponse<Phase>;
-    })
-    .catch((error) => {
-      log.error(`Failed to fetch phase: ${error}`);
-      throw error;
+  } catch (error) {
+    log.error("Error fetching data");
+    return new Response("Error fetching data", {
+      status: 500,
     });
-
-  const variantsResponse = await variantPromise
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Failed to fetch variants");
-      }
-      return response.json();
-    })
-    .then((data) => {
-      return data as ListApiResponse<Variant>;
-    })
-    .catch((error) => {
-      log.error(`Failed to fetch variants: ${error}`);
-      throw error;
-    });
-
-  const mapResponse = await mapPromise
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Failed to fetch map");
-      }
-      return response.text();
-    })
-    .catch((error) => {
-      log.error(`Failed to fetch map: ${error}`);
-      throw error;
-    });
-
-  const armyResponse = await armyPromise
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Failed to fetch army");
-      }
-      return response.text();
-    })
-    .catch((error) => {
-      log.error(`Failed to fetch army: ${error}`);
-      throw error;
-    });
-
-  const fleetResponse = await fleetPromise
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Failed to fetch fleet");
-      }
-      return response.text();
-    })
-    .catch((error) => {
-      log.error(`Failed to fetch fleet: ${error}`);
-      throw error;
-    });
-
-  const transformedGame = gameAdapter(gameResponse.Properties);
-  const variantName = transformedGame.variant;
-
-  const variant = variantsResponse.Properties.find(
-    (variant) => variant.Name === variantName
-  );
-
-  if (!variant) {
-    return "Cannot find variant";
   }
-
-  const transformedVariant = variantAdapter(variant.Properties);
-  const transformedPhase = phaseAdapter(phaseResponse.Properties);
-
-  const map = createMap(
-    mapResponse,
-    armyResponse,
-    fleetResponse,
-    transformedVariant,
-    transformedPhase
-  );
-
-  return new Response(map, {
-    status: 200,
-    headers: {
-      "Content-Type": "image/svg+xml",
-    },
-  });
 }
