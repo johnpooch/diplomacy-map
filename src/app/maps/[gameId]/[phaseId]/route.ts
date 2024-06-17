@@ -33,6 +33,8 @@ export async function GET(
 
   const { gameId, phaseId } = params;
 
+  log.info(`API base URL: ${diplicityApiBaseUrl}`);
+
   const gamePromise = fetch(`${diplicityApiBaseUrl}/Game/${gameId}`, {
     headers,
   });
@@ -128,8 +130,8 @@ export async function GET(
       },
     });
   } catch (error) {
-    log.error(`Error fetching data: ${error}`);
-    return new Response(`Error fetching data: ${error}`, {
+    log.error(`Error fetching data: ${JSON.stringify(error)}`);
+    return new Response(`Error fetching data: ${JSON.stringify(error)}`, {
       status: 500,
     });
   }
