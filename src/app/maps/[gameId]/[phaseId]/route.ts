@@ -129,9 +129,13 @@ export async function GET(
     const browser = await puppeteer.launch({
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
+    log.info("Puppeteer browser launched successfully");
     const page = await browser.newPage();
+    log.info("Puppeteer page created successfully");
     await page.setContent(mapSvg);
+    log.info("SVG content set successfully");
     const png = await page.screenshot({ type: "png" });
+    log.info("Screenshot taken successfully");
     await browser.close();
     log.info("SVG converted to PNG successfully");
 
