@@ -146,7 +146,11 @@ export async function GET(
       },
     });
   } catch (error) {
-    log.error(`Error fetching data: ${JSON.stringify(error)}`);
+    if (error instanceof Error) {
+      log.error(`Error fetching data: ${error.message}`);
+    } else {
+      log.error(`Error fetching data: ${JSON.stringify(error)}`);
+    }
     return new Response(`Error fetching data: ${JSON.stringify(error)}`, {
       status: 500,
     });
