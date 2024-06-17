@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@napi-rs/image": "^1.9.2",
     "@xmldom/xmldom": "^0.8.10",
     "dotenv": "^16.4.5",
     "next": "14.2.3",

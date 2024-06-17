@@ -1,3 +1,5 @@
+import { Transformer } from "@napi-rs/image";
+
 import {
   ApiResponse,
   Game,
@@ -31,7 +33,7 @@ export async function GET(
 ) {
   const { gameId, phaseId } = params;
 
-  const trimmedPhaseId = phaseId.replace(".svg", "");
+  const trimmedPhaseId = phaseId.replace(".png", "");
 
   log.info(`API base URL: ${diplicityApiBaseUrl}`);
 
@@ -114,7 +116,7 @@ export async function GET(
     log.info("Phase transformed successfully");
 
     log.info("Creating map SVG");
-    const map = createMap(
+    const mapSvg = createMap(
       mapResponse,
       armyResponse,
       fleetResponse,
@@ -123,10 +125,14 @@ export async function GET(
     );
     log.info("Map SVG created successfully");
 
-    return new Response(map, {
+    log.info("Transforming map SVG to PNG");
+    const transformer = Transformer.fromSvg(mapSvg);
+    const png = await transformer.png();
+
+    return new Response(png, {
       status: 200,
       headers: {
-        "Content-Type": "image/svg+xml",
+        "Content-Type": "image/png",
       },
     });
   } catch (error) {
