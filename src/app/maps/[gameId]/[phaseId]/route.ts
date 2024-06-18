@@ -19,7 +19,7 @@ if (!diplicityApiBaseUrl) {
   throw new Error("DIPLICITY_API_BASE_URL is required");
 }
 
-const log = createScopedLogger("app/page");
+const log = createScopedLogger("app/maps/[gameId]/[phaseId]/route");
 
 const headers = new Headers();
 headers.set("XDiplicityAPILevel", "8");
@@ -33,7 +33,8 @@ export async function GET(
 ) {
   const { gameId, phaseId } = params;
 
-  const trimmedPhaseId = phaseId.replace(".png", "");
+  // Remove any file extension from phaseId
+  const trimmedPhaseId = phaseId.split(".")[0];
 
   log.info(`API base URL: ${diplicityApiBaseUrl}`);
 
@@ -111,7 +112,7 @@ export async function GET(
     const transformedVariant = variantAdapter(variant.Properties);
     log.info(`Variant transformed successfully`);
 
-    log.info("Transforming phase");
+    log.info(`Transforming phase: ${JSON.stringify(phaseResponse)}`);
     const transformedPhase = phaseAdapter(phaseResponse.Properties);
     log.info("Phase transformed successfully");
 
@@ -127,11 +128,23 @@ export async function GET(
 
     log.info("Use puppeteer to convert SVG to PNG");
     const browser = await puppeteer.launch({
+      executablePath: "/usr/bin/chromium-browser",
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
     log.info("Puppeteer browser launched successfully");
     const page = await browser.newPage();
     log.info("Puppeteer page created successfully");
+
+    // Get width and height from SVG viewbox attribute and set viewport
+    const viewBox = mapSvg.match(/viewBox="0 0 (\d+) (\d+)"/);
+    if (viewBox) {
+      const [, width, height] = viewBox;
+      await page.setViewport({
+        width: parseInt(width, 10),
+        height: parseInt(height, 10),
+      });
+    }
+
     await page.setContent(mapSvg);
     log.info("SVG content set successfully");
     const png = await page.screenshot({ type: "png" });

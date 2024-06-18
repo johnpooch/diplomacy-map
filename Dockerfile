@@ -1,4 +1,5 @@
 FROM node:current-alpine
+RUN apk add chromium
 RUN apk add --no-cache bash
 COPY . /app
 WORKDIR /app
